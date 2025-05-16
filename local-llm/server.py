@@ -19,6 +19,7 @@ SECTION_MARKERS = [
     r"(?:named\s+)?insured(?:\s+party)?[:\s]+",
     r"policy\s+holder[:\s]+",
     r"certificate\s+holder[:\s]+",
+    r"insurance\s+holder[:\s]+",
     r"(?:primary|insured)\s+(?:entity|company)[:\s]+",
     r"coverage\s+for[:\s]+",
     r"issued\s+to[:\s]+"

@@ -1,5 +1,6 @@
 // src/components/ResultsTable.tsx
 import React from 'react';
+import { INSUREDS } from '@/lib/mockData'; // Import the mock data
 
 interface Result {
   fileName: string;
@@ -12,9 +13,10 @@ interface Result {
 
 interface ResultsTableProps {
   results: Result[];
+  onManualMatch?: (fileName: string, internalId: string) => void;
 }
 
-export default function ResultsTable({ results }: ResultsTableProps) {
+export default function ResultsTable({ results, onManualMatch }: ResultsTableProps) {
   if (results.length === 0) {
     return null;
   }
@@ -39,6 +41,11 @@ export default function ResultsTable({ results }: ResultsTableProps) {
             <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
               Confidence
             </th>
+            {onManualMatch && (
+              <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
+                Action
+              </th>
+            )}
           </tr>
         </thead>
         <tbody className="divide-y divide-gray-200 bg-white">
@@ -60,11 +67,29 @@ export default function ResultsTable({ results }: ResultsTableProps) {
                 {result.extractedName || '-'}
               </td>
               <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                {result.matchedId || '-'}
+                {result.matchedId || 'No match'}
               </td>
               <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                {result.confidence > 0 ? `${(result.confidence * 100).toFixed(1)}%` : '-'}
+                {`${(result.confidence * 100).toFixed(1)}%`}
               </td>
+              {onManualMatch && (
+                <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                  {result.status === 'done' && (result.confidence < 0.8 || !result.matchedId) && (
+                    <select 
+                      className="block w-full rounded-md border-0 py-1.5 pl-3 pr-10 text-gray-900 ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-indigo-600 sm:text-sm sm:leading-6"
+                      onChange={(e) => onManualMatch(result.fileName, e.target.value)}
+                      defaultValue=""
+                    >
+                      <option value="" disabled>Select match...</option>
+                      {INSUREDS.map((insured) => (
+                        <option key={insured.internalId} value={insured.internalId}>
+                          {insured.name} ({insured.internalId})
+                        </option>
+                      ))}
+                    </select>
+                  )}
+                </td>
+              )}
             </tr>
           ))}
         </tbody>

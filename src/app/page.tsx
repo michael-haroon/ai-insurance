@@ -6,6 +6,7 @@ import Dropzone from '@/components/Dropzone';
 import ResultsTable from '@/components/ResultsTable';
 import { parseFile } from '@/lib/parser';
 import { findBestMatch } from '@/lib/match';
+import { INSUREDS } from '@/lib/mockData'; // Import mock data
 
 const generateId = () => Math.random().toString(36).substring(2, 9);
 
@@ -31,6 +32,30 @@ export default function Home() {
 
   // Convert map to array for ResultsTable which expects an array
   const resultsList = Object.values(resultsMap).sort((a, b) => a.timestamp - b.timestamp);
+
+  // Handler for manual matching
+  const handleManualMatch = (fileName: string, internalId: string) => {
+    // Find the result with this filename
+    const resultId = Object.keys(resultsMap).find(
+      id => resultsMap[id].fileName === fileName
+    );
+    
+    if (!resultId) return;
+    
+    // Find the selected insured data
+    const selectedInsured = INSUREDS.find(i => i.internalId === internalId);
+    if (!selectedInsured) return;
+    
+    // Update the result with the manual match
+    setResultsMap(prev => ({
+      ...prev,
+      [resultId]: {
+        ...prev[resultId],
+        matchedId: internalId,
+        confidence: 1.0, // Set to 100% for manual matches
+      }
+    }));
+  };
 
   const processNextInQueue = async () => {
     if (processingQueue.current.length === 0) {
@@ -130,8 +155,12 @@ export default function Home() {
       <div className="max-w-7xl mx-auto">
         <h1 className="text-3xl font-bold mb-8">Insurance Claim Parser</h1>
         <Dropzone onFilesAccepted={handleFilesAccepted} />
-        <ResultsTable results={resultsList} />
+        <ResultsTable 
+          results={resultsList} 
+          onManualMatch={handleManualMatch} 
+        />
       </div>
     </main>
+
   );
 }
