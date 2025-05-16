@@ -1,13 +1,10 @@
 // src/app/api/extract-insured/route.ts
 import { NextResponse } from "next/server";
+import { SYSTEM_PROMPT } from "@/lib/prompts";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const SYSTEM_PROMPT =
-  `You are an expert at reading commercial-insurance documents. 
-   Return ONLY the name of the primary insured, no extra words.
-   If unsure, say "UNKNOWN".`;
 
 export async function POST(req: Request) {
   try {
