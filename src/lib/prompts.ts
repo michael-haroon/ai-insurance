@@ -1,4 +1,5 @@
 // src/lib/prompts.ts
+// used to feed into LLM API
 export const SYSTEM_PROMPT = `
 You are an AI assistant specialized in extracting information from insurance claim documents.
 Your task is to identify the PRIMARY INSURED ENTITY from the document.
