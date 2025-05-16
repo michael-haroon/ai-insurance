@@ -76,8 +76,17 @@ export default function Home() {
       // Add a delay before parsing to reduce collision likelihood
       await new Promise(resolve => setTimeout(resolve, 300));
 
-      // Parse document
-      const parsedDoc = await parseFile(file);
+      // Parse document with streaming updates
+      const parsedDoc = await parseFile(file, (partialName) => {
+        // Update UI with streaming results in real-time
+        setResultsMap(prev => ({
+          ...prev,
+          [id]: {
+            ...prev[id],
+            extractedName: partialName,
+          }
+        }));
+      });
       
       // Find best match
       const match = findBestMatch(parsedDoc.insuredName);

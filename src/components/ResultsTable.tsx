@@ -70,7 +70,29 @@ export default function ResultsTable({ results, onManualMatch }: ResultsTablePro
                 {result.matchedId || 'No match'}
               </td>
               <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                {`${(result.confidence * 100).toFixed(1)}%`}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                  {/* Progress bar container */}
+                  <div style={{ 
+                    width: '100%', 
+                    height: '6px', 
+                    backgroundColor: 'var(--geist-background-secondary, #eaeaea)',
+                    borderRadius: '4px',
+                    overflow: 'hidden'
+                  }}>
+                    {/* Progress bar fill */}
+                    <div style={{ 
+                      height: '100%',
+                      width: `${Math.min(100, Math.max(5, result.confidence * 100))}%`,
+                      backgroundColor: result.confidence >= 0.8 
+                        ? 'var(--geist-success, #0070f3)' 
+                        : result.confidence >= 0.6 
+                          ? 'var(--geist-warning, #f5a623)' 
+                          : 'var(--geist-error, #ee0000)',
+                      transition: 'width 0.3s ease'
+                    }} />
+                  </div>
+                  <span>{`${(result.confidence * 100).toFixed(1)}%`}</span>
+                </div>
               </td>
               {onManualMatch && (
                 <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">

@@ -10,7 +10,10 @@ export interface ParsedDocument {
  * High-level helper: give it a File, get back the extracted
  * plain-text *and* the insured name (via LLM).
  */
-export async function parseFile(file: File): Promise<ParsedDocument> {
+export async function parseFile(
+  file: File, 
+  onExtractProgress?: (partialName: string) => void
+): Promise<ParsedDocument> {
   const ext = file.name.split('.').pop()?.toLowerCase()
 
   // 1️⃣  Extract plain text via format-specific route
@@ -34,7 +37,15 @@ export async function parseFile(file: File): Promise<ParsedDocument> {
   }
 
   // 2️⃣  Ask the LLM for the primary insured
-  const insuredName = await extractInsuredName(text)
+  let currentPartial = '';
+  
+  const insuredName = await extractInsuredName(text, {
+    // Add streaming callback if provided
+    onStreamToken: onExtractProgress ? (token) => {
+      currentPartial += token;
+      onExtractProgress(currentPartial);
+    } : undefined
+  });
 
   return { text, insuredName }
 }
@@ -42,6 +53,7 @@ export async function parseFile(file: File): Promise<ParsedDocument> {
 /* ---------- helpers ---------- */
 
 async function parseViaApi(endpoint: string, file: File): Promise<string> {
+  // Your existing implementation
   const fd = new FormData()
   fd.append('file', file)
 
