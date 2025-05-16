@@ -5,7 +5,7 @@ A Next.js application that processes insurance claim documents to identify and m
 ## Features
 
 - Drag-and-drop file upload for PDF, DOCX, and TXT files
-- Automatic extraction of insured entity names using Google's Gemini
+- Automatic extraction of insured entity names using local NLP
 - Fuzzy matching against a predefined list of insured entities
 - Real-time processing status updates
 - Confidence scoring for matches
@@ -17,7 +17,7 @@ A Next.js application that processes insurance claim documents to identify and m
 - React 18
 - TypeScript
 - Tailwind CSS
-- Google Gemini Pro
+- Local NLP
 - PDF.js for PDF parsing
 - Mammoth.js for DOCX parsing
 - String Similarity for fuzzy matching
@@ -25,15 +25,31 @@ A Next.js application that processes insurance claim documents to identify and m
 ## Setup
 
 1. Clone the repository
-2. Install dependencies:
+2. In the root directory, install dependencies:
    ```bash
    npm install
    ```
-3. Create a `.env.local` file in the root directory with your Google API key:
+3. Set up the local NLP server:
+   ```bash
+   # Navigate to the local-llm directory
+   cd local-llm
+
+   # Create a Python virtual environment (optional but recommended)
+   python -m venv venv
+
+   # Activate the virtual environment
+   # On Windows:
+   venv\Scripts\activate
+   # On macOS/Linux:
+   source venv/bin/activate
+
+   # Install Python dependencies
+   pip install -r requirements.txt
+
+   # Start the NLP server
+   python server.py
    ```
-   GOOGLE_API_KEY=your_api_key_here
-   ```
-4. Start the development server:
+4. In a new terminal, start the development server:
    ```bash
    npm run dev
    ```
@@ -46,7 +62,7 @@ The application follows a modular architecture with clear separation of concerns
 - `components/`: React components for the UI
 - `lib/`: Core business logic and utilities
   - `parser.ts`: Document parsing utilities
-  - `llm.ts`: Google Gemini integration for entity extraction
+  - `llm.ts`: Local NLP integration for entity extraction
   - `match.ts`: String matching and normalization logic
 - `app/`: Next.js app router pages and layouts
 
