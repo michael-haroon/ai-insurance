@@ -28,15 +28,6 @@ export async function POST(req: Request) {
   } catch (err: any) {
     console.error('Error parsing DOCX:', err);
     
-    // Add fallback for demo purposes
-    const fileName = (err.fileName || '').toLowerCase();
-    if (fileName.includes('sample3') || (err.message && err.message.includes('sample3'))) {
-      console.log('Using fallback content for sample3.docx');
-      return NextResponse.json({ 
-        text: "Report of Property Loss \nRef#: #SP-90219 \nFiled: 03/12/2024 \nAnalyst: M. BURNS \nAffected Location: \n410 South Industrial Way \nOwnership information on record includes Evergreen Farms Ltd. (primary entity) and maintenance subcontractor Urban Grid Construction. \nDamage was reported by the on-site facilities coordinator, who noted structural degradation likely stemming from roof rot compounded by water intrusion. \nPlease refer to Evergreen Farms LTD as the primary account holder for policy #EVG-2024-981."
-      });
-    }
-    
     // Return error response
     return NextResponse.json(
       { error: 'Error parsing DOCX', details: String(err) },

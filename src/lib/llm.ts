@@ -49,18 +49,6 @@ export async function extractInsuredName(documentText: string, options: LLMOptio
 
 // Improved regex patterns with special handling for your sample cases
 function extractEntityWithRegex(text: string): string {
-  // Special case handling for the sample files
-  if (text.includes('Evergreen Far ms Ltd') || text.includes('Evergreen Farms')) {
-    return "Evergreen Farms Ltd.";
-  }
-  
-  if (text.includes('Quail Creek RE')) {
-    return "Quail Creek RE LLC";
-  }
-  
-  if (text.includes('Riley HealthCare')) {
-    return "Riley HealthCare LLC";
-  }
   
   // General patterns
   const patterns = [
