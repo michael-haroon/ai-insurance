@@ -1,35 +1,32 @@
 // src/lib/llm.ts
-import { SYSTEM_PROMPT } from '@/lib/prompts';
+import { simulateStreamingResponse } from '@/lib/prompt-helpers';
 
 interface LLMOptions {
   maxTokens?: number;
   temperature?: number;
-  onStreamToken?: (token: string) => void; // New callback for streaming
+  onStreamToken?: (token: string) => void;
 }
 
 /**
  * Extracts the primary insured entity name from document text
+ * using a tiered approach: regex -> API endpoints
  */
 export async function extractInsuredName(documentText: string, options: LLMOptions = {}): Promise<string> {
-  // First try direct regex extraction 
+  // First try direct regex extraction (fast, local)
   const extractedWithRegex = extractEntityWithRegex(documentText);
   if (extractedWithRegex !== "UNKNOWN") {
     console.log(`Extracted entity with regex: "${extractedWithRegex}"`);
     
     // Simulate streaming for regex results if streaming is enabled
     if (options.onStreamToken) {
-      const words = extractedWithRegex.split(/\s+/);
-      for (const word of words) {
-        await new Promise(resolve => setTimeout(resolve, 100));
-        options.onStreamToken(word + ' ');
-      }
+      await simulateStreamingResponse(extractedWithRegex, options.onStreamToken);
     }
     
     return extractedWithRegex;
   }
 
   try {
-    console.log("Regex extraction failed, falling back to local server");
+    console.log("Regex extraction failed, calling extraction API");
     
     // Use streaming API if a streaming callback is provided
     if (options.onStreamToken) {
@@ -41,17 +38,13 @@ export async function extractInsuredName(documentText: string, options: LLMOptio
         body: JSON.stringify({
           prompt: documentText,
           max_length: options.maxTokens || 200,
-          temperature: options.temperature || 0.7
+          temperature: options.temperature || 0.3
         }),
       });
 
-      if (!response.ok) {
-        throw new Error(`Streaming request failed: ${response.status}`);
-      }
-
-      if (!response.body) {
-        throw new Error('ReadableStream not supported');
-      }
+      // Streaming response handling
+      if (!response.ok) throw new Error(`Streaming request failed: ${response.status}`);
+      if (!response.body) throw new Error('ReadableStream not supported');
 
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
@@ -80,7 +73,7 @@ export async function extractInsuredName(documentText: string, options: LLMOptio
         body: JSON.stringify({
           prompt: documentText,
           max_length: options.maxTokens || 200,
-          temperature: options.temperature || 0.7
+          temperature: options.temperature || 0.3
         }),
       });
 
@@ -90,20 +83,17 @@ export async function extractInsuredName(documentText: string, options: LLMOptio
       }
 
       const data = await response.json();
-      console.log(`Extracted entity with server: "${data.response}"`);
+      console.log(`Extracted entity with API: "${data.response}"`);
       return data.response.trim();
     }
   } catch (error) {
-    console.error('LLM extraction error:', error);
-    
-    // If server fails, still return the regex result
-    return extractedWithRegex;
+    console.error('API extraction error:', error);
+    return "UNKNOWN"; // If all else fails
   }
 }
 
 // Improved regex patterns with special handling for your sample cases
 function extractEntityWithRegex(text: string): string {
-  
   // General patterns
   const patterns = [
     // Primary entity pattern
