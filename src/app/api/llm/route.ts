@@ -1,37 +1,21 @@
-// app/api/llm/route.ts
+// src/app/api/llm/route.ts - Standard endpoint
 import { NextResponse } from 'next/server';
+import { extractEntity } from '@/lib/extraction-service';
 
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    
-    const response = await fetch('http://localhost:8000/chat', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(body),
+    const result = await extractEntity(body.prompt, {
+      maxTokens: body.max_length,
+      temperature: body.temperature
     });
-
-    if (!response.ok) {
-      const error = await response.json();
-      return NextResponse.json(
-        { error: error.detail || 'LLM processing failed' },
-        { status: response.status }
-      );
-    }
-
-    return NextResponse.json(await response.json());
-  } catch (error: unknown) {
-    console.error('LLM proxy error:', error);
     
-    // Type-safe error handling
-    const errorMessage = error instanceof Error 
-      ? error.message 
-      : 'Unknown error occurred';
-      
+    return NextResponse.json({ response: result });
+  } catch (error: unknown) {
+    console.error('Extraction error:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
     return NextResponse.json(
-      { error: `Failed to process LLM request: ${errorMessage}` },
+      { error: `Failed to extract entity: ${errorMessage}` },
       { status: 500 }
     );
   }

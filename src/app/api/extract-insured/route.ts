@@ -1,35 +1,18 @@
-// src/app/api/extract-insured/route.ts
+// src/app/api/extract-insured/route.ts - Simplified to use extraction service
 import { NextResponse } from "next/server";
-import { SYSTEM_PROMPT } from "@/lib/prompts";
+import { extractEntity } from '@/lib/extraction-service';
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-
 
 export async function POST(req: Request) {
   try {
     const { text } = await req.json();
     
-    // Call your local LLM instead of Google
-    const response = await fetch("http://localhost:8000/chat", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        prompt: `${SYSTEM_PROMPT}\n\nDocument text:\n${text}\n\nExtract the primary insured entity name:`,
-        max_length: 200,
-        temperature: 0.3 // Lower temperature for more deterministic results
-      }),
+    const insuredName = await extractEntity(text, {
+      maxTokens: 200,
+      temperature: 0.3
     });
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.detail || `LLM request failed: ${response.status}`);
-    }
-
-    const result = await response.json();
-    const insuredName = result.response.trim();
     
     return NextResponse.json({ insuredName });
   } catch (err: unknown) {
