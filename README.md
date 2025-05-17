@@ -6,19 +6,25 @@ It is a work in progress and is not yet ready for "production" use.
 ## Features
 
 - Drag-and-drop file upload for PDF, DOCX, and TXT files
-- Automatic extraction of insured entity names using local NLP
+- Multi-tiered entity extraction:
+  - Hugging Face LLM-based extraction
+  - Regex pattern matching fallback
+  - Local Python NLP service for advanced processing
 - Fuzzy matching against a predefined list of insured entities
-- Real-time processing status updates
+- Real-time processing with streaming token updates
 - Confidence scoring for matches
-- Error handling and graceful failure recovery
+- Manual matching capabilities for low-confidence results
+- Concurrent file processing with queue management
 
 ## Tech Stack
 
 - Next.js 14 (App Router)
 - React 18
 - TypeScript
-- Tailwind CSS
-- Local NLP
+- Tailwind CSS with PostCSS processing
+- Geist UI components
+- Hugging Face API for LLM processing
+- Local Python NLP service
 - PDF.js for PDF parsing
 - Mammoth.js for DOCX parsing
 - String Similarity for fuzzy matching
@@ -50,11 +56,15 @@ It is a work in progress and is not yet ready for "production" use.
    # Start the NLP server
    python server.py
    ```
-4. In a new terminal, start the development server:
+4. Set up Hugging Face API key in an .env file at the root of the project:
+   ```bash
+   HUGGINGFACE_API_KEY=your_api_key
+   ```
+5. In a new terminal, start the development server:
    ```bash
    npm run dev
    ```
-5. Open [http://localhost:3000](http://localhost:3000) in your browser
+6. Open [http://localhost:3000](http://localhost:3000) in your browser
 
 ## Architecture
 
@@ -67,59 +77,54 @@ The application follows a modular architecture with clear separation of concerns
    - `components/`: React components for the UI
    - `lib/`: Core business logic and utilities
       - `parser.ts`: Document parsing utilities
-      - `llm.ts`: Local NLP integration for entity extraction
-      - `match.ts`: String matching and normalization logic
-      - `mockData.ts`: Mock data for testing
+      - `llm.ts`: Hugging Face integration
+      - `match.ts`: Entity matching and with confidence scoring
+      - `prompts.ts`: Centralized system prompt for LLM
+      - `extraction-services.ts`: Tiered extraction strategy
    - `app/`: Next.js app router pages and layouts
-      - `page.tsx`: Main page component
-      - `layout.tsx`: Layout component
-      - `api/`: API routes
-         - `parse-docx/`: Document parsing API
-         - `extract-insured/`: Insured extraction API
-         - `llm/`: Local NLP API
-         - `llm-stream/`: Local NLP streaming API
-   - `public/`: Static assets
-      - `favicon.ico`: Favicon
-      - `logo.png`: Logo
-      - `mockData.ts`: Mock data for testing
+      - `api/`: API routes for document parsing and LLM interactions
+         - `parse-docx/` & `parse-pdf/`: Document parsing APIs
+         - `extract-insured/`: Entity extraction API
+         - `llm/` & `llm-stream/`: Local LLM processing endpoints
+         - `huggingface/`: Hugging Face LLM integration
       
+
+## Processing Strategy
+
+### Multi-Tiered Extraction
+The application implements a sophisticated extraction pipeline:
+
+1. **Primary: Hugging Face LLM**
+   - Provides context-aware extraction with high accuracy
+   - Uses carefully crafted prompts for insurance domain
+
+2. **Fallback: Regex Pattern Matching**
+   - Activates if LLM is unavailable or fails
+   - Optimized for common insurance document formats
+
+3. **Final Layer: Local NLP Service**
+   - Python-based NLP for specialized extraction
+   - Handles complex documents where other methods fail
+
+### Robust Processing
+- **Queued Processing**: Files are processed sequentially through a dedicated queue system
+- **Collision Prevention**: Implementation includes mutex-style locking for PDF processing
+- **Streaming Updates**: Real-time extraction results with token-by-token updates
+- **Exponential Backoff**: Failed processing attempts are retried with increasing delays
+
+## Entity Matching
+
+- **Normalized Comparison**: Entities are normalized by removing corporate suffixes and standardizing formatting
+- **Confidence Scoring**: Matches receive a confidence score (0-100%) indicating match quality
+- **Manual Override**: Low-confidence matches can be manually corrected through the UI
+- **Color-Coded Results**: Visual indicators show confidence levels for immediate assessment
 
 ## Trade-offs and Assumptions
 
-### Processing Flow
-- **Three-Tier Extraction Strategy**: The application implements a sophisticated multi-tiered approach:
-  1. **LLM-Based Extraction**: First attempts to use Hugging Face's LLM capabilities for highest accuracy
-  2. **Pattern Matching**: Falls back to regex pattern matching if the LLM is unavailable
-  3. **Advanced NLP Service**: As a final fallback, uses a dedicated Python NLP service with specialized entity extraction algorithms
-  
-- **Sequential Processing**: Files are processed sequentially with intentional delays to prevent parser collisions and avoid overwhelming system resources. In a production environment, implementing parallel processing with rate limiting would be more efficient.
-- **Streaming Support**: The application simulates streaming token responses from all extraction methods for a better user experience, providing real-time feedback during extraction operations.
-
-### Error Handling
-- **Graceful Degradation**: The three-tier fallback system (LLM → regex → Python NLP) ensures exceptional resilience, allowing the system to continue functioning even when multiple extraction methods fail.
-- **Ephemeral Error States**: The application handles errors gracefully but doesn't persist error states across page refreshes. A production environment would benefit from error logging and recovery mechanisms.
-- **PDF Processing Resilience**: The app attempts multiple PDF parsing methods if the primary method fails, showing good resilience for handling problematic documents.
-
-### Entity Extraction & Matching
-- **LLM Integration**: The system uses Hugging Face's API for primary extraction, with carefully tuned prompts to guide the model's focus on insurance entities.
-- **Pattern-Based Fallback**: When LLM extraction isn't available, the system falls back to regex patterns optimized for insurance document formatting.
-- **Advanced NLP Techniques**: The Python service provides sophisticated entity detection with contextual awareness and heuristic scoring that goes beyond simple pattern matching.
-- **String Similarity Matching**: For entity matching, the implementation uses the string-similarity package to compute a confidence score between normalized entity names. The score ranges from 0 to 1, with 1 being an exact match.
-- **Strict Confidence Threshold**: Matches below a 0.8 confidence score are rejected as "No match found". This 80% threshold balances precision and recall for the insurance domain.
-- **Name Normalization**: The matching algorithm normalizes names by removing corporate suffixes, converting to lowercase, and standardizing spacing, which improves matching accuracy but might lose potentially distinguishing information.
-
-### Security & Infrastructure
-- **Document Safety**: The application assumes uploaded files are safe to process. Production implementations would require file validation, sanitization, and virus scanning.
-- **API Key Security**: The Hugging Face API key is stored server-side with appropriate access controls, but a more robust secrets management system would be needed in production.
-- **Sample Fallbacks**: Special handling exists for sample documents, which is useful for demos but would need to be removed in production.
-- **Service Dependencies**: The application relies on both the Hugging Face API and a local Python service, creating multiple external dependencies that would need reliability monitoring in production.
-
-### System Prompt Design
-The system prompt is configured in a single location (`src/lib/prompts.ts`) for maintainability and consistency. The prompt was designed with these considerations:
-- **Task specificity**: Clearly instructs the model to extract only the primary insured entity
-- **Format guidance**: Emphasizes returning only the entity name without explanations
-- **Domain context**: Provides insurance-specific terminology to help the model identify relevant entities
-- **Error handling**: Instructs the model to return "UNKNOWN" when it can't confidently identify the entity
+- **Document Safety**: The application assumes uploaded files are safe to process. Production implementations would require file validation and virus scanning.
+- **API Dependencies**: Relies on both Hugging Face API and local Python service, creating multiple external dependencies.
+- **Processing Speed vs. Reliability**: Prioritizes reliable processing over speed by using queuing and retries.
+- **Sample Document Handling**: Special handling exists for sample documents to ensure consistent demo results.
 
 ## Testing
 
