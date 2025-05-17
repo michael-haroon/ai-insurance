@@ -50,7 +50,12 @@ export default function ResultsTable({ results, onManualMatch }: ResultsTablePro
         </thead>
         <tbody className="divide-y divide-gray-200 bg-white">
           {results.map((result, index) => (
-            <tr key={index}>
+            <tr 
+              key={index}
+              // Add a more distinct border around each row
+              className="border-2 border-transparent hover:border-gray-200 transition-colors duration-200"
+              style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}
+            >
               <td className="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900">
                 {result.fileName}
               </td>
@@ -67,7 +72,8 @@ export default function ResultsTable({ results, onManualMatch }: ResultsTablePro
                 {result.extractedName || '-'}
               </td>
               <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                {result.matchedId || 'No match'}
+                {/* Show "-" until processing is complete */}
+                {result.status === 'done' ? (result.matchedId || 'No match') : '-'}
               </td>
               <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
