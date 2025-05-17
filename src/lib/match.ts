@@ -37,7 +37,14 @@ export function findBestMatch(extractedName: string): MatchResult {
     current.confidence > best.confidence ? current : best
   );
 
-  return bestMatch.confidence >= 0.8
-    ? bestMatch
-    : { internalId: '', name: 'No match found', confidence: 0 };
+  // Keep the actual confidence score but mark as "No match" if below threshold
+  if (bestMatch.confidence >= 0.8) {
+    return bestMatch;
+  } else {
+    return { 
+      internalId: '', 
+      name: 'No match found', 
+      confidence: bestMatch.confidence // Preserve the actual confidence value
+    };
+  }
 }
