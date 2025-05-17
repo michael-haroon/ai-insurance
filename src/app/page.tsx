@@ -164,12 +164,25 @@ export default function Home() {
       <div className="max-w-7xl mx-auto">
         <h1 className="text-3xl font-bold mb-8">Insurance Claim Parser</h1>
         <Dropzone onFilesAccepted={handleFilesAccepted} />
+        
+        {/* Separator between Dropzone and Results Table */}
+        {resultsList.length > 0 && (
+          <div className="py-4">
+            <div className="border-t border-base-2 relative">
+              <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white px-4">
+                <p className="text-sm text-primary font-medium text-center">
+                  Results are below. You can only drop files above.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+        
         <ResultsTable 
           results={resultsList} 
           onManualMatch={handleManualMatch} 
         />
       </div>
     </main>
-
   );
 }
