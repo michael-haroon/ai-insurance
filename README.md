@@ -11,41 +11,21 @@ It is a work in progress and is not yet ready for "production" use.
    ```bash
    npm install
    ```
-3. Set up the local NLP server:
-   ```bash
-   # Navigate to the local-llm directory
-   cd local-llm
-
-   # Create a Python virtual environment (optional but recommended)
-   python -m venv venv
-
-   # Activate the virtual environment
-   # On Windows:
-   venv\Scripts\activate
-   # On macOS/Linux:
-   source venv/bin/activate
-
-   # Install Python dependencies
-   pip install -r requirements.txt
-
-   # Start the NLP server
-   python server.py
-   ```
-4. Set up Hugging Face API key in an .env file at the root of the project:
+3. Set up Hugging Face API key in an .env file at the root of the project:
    ```bash
    HUGGINGFACE_API_KEY=your_api_key
    ```
-5. In a new terminal, start the development server:
+4. In a new terminal, start the development server:
    ```bash
    npm run dev
    ```
-6. Open [http://localhost:3000](http://localhost:3000) in your browser
+5. Open [http://localhost:3000](http://localhost:3000) in your browser
 
 ## Architecture
 
-The application employs a multi-tiered extraction strategy with three levels: Hugging Face LLM (primary), regex pattern matching (secondary), and a Python NLP service (fallback). Document processing follows a queue-based approach with mutex locking to prevent collisions during concurrent uploads. The React frontend provides real-time feedback through streaming updates during extraction, while the backend API routes handle document parsing and entity extraction.
+The application employs a multi-tiered extraction strategy with two levels: regex pattern matching (primary), and a Hugging Face LLM (secondary). Document processing follows a queue-based approach with mutex locking to prevent collisions during concurrent uploads. The React frontend provides real-time feedback through streaming updates during extraction, while the backend API routes handle document parsing and entity extraction.
 
-Core modules include: parser.ts (document handling), extraction-service.ts (tiered extraction), llm.ts (AI integration), and match.ts (entity matching with confidence scoring). The system uses a dedicated Python service (local-llm/) for advanced NLP capabilities when other methods fail.
+Core modules include: parser.ts (document handling), extraction-service.ts (tiered extraction), llm.ts (AI integration), and match.ts (entity matching with confidence scoring). The system uses a lite regex pattern matching function at the first level to keep the program quick. LLM is the second level.
 
 ## Trade-offs and Assumptions
 

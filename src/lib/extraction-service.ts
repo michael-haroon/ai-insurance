@@ -36,30 +36,6 @@ export async function extractEntity(text: string, options: ExtractionOptions = {
     return data.result || data.response || "";
   } catch (error) {
     console.log("Hugging Face extraction failed, falling back to Python NLP service");
-    
-    // Fall back to Python NLP service
-    try {
-      const response = await fetch('http://localhost:8000/chat', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          prompt: text,
-          max_length: options.maxTokens || 200,
-          temperature: options.temperature || 0.3
-        }),
-      });
-      
-      if (!response.ok) {
-        throw new Error(`Python NLP service failed: ${response.status}`);
-      }
-      
-      const data = await response.json();
-      return data.response || "";
-    } catch (nlpError) {
-      console.error("All extraction services failed:", nlpError);
-      return "UNKNOWN";
-    }
+    return "UNKNOWN";
   }
 }
