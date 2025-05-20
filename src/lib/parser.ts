@@ -1,6 +1,5 @@
 // src/lib/parser.ts
 
-// More robust approach
 import { extractInsuredName } from '@/lib/llm';
 
 // Create a singleton processing queue with proper isolation
@@ -80,12 +79,19 @@ export async function parseFile(
       throw new Error(`Unsupported file type: ${ext}`);
   }
 
+  // Track the current partial name for streaming updates
   let currentPartial = '';
+  
+  const onToken = onExtractProgress 
+    ? (token: string) => {
+        currentPartial += token;
+        onExtractProgress(currentPartial);
+      }
+    : undefined;
+
+  // Extract the insured name with streaming support
   const insuredName = await extractInsuredName(text, {
-    onStreamToken: onExtractProgress ? (token) => {
-      currentPartial += token;
-      onExtractProgress(currentPartial);
-    } : undefined
+    onStreamToken: onToken
   });
 
   return { text, insuredName };

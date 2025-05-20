@@ -1,5 +1,4 @@
 // src/lib/llm.ts
-import { simulateStreamingResponse } from '@/lib/prompt-helpers';
 
 interface LLMOptions {
   maxTokens?: number;
@@ -19,7 +18,13 @@ export async function extractInsuredName(documentText: string, options: LLMOptio
     
     // Simulate streaming for regex results if streaming is enabled
     if (options.onStreamToken) {
-      await simulateStreamingResponse(extractedWithRegex, options.onStreamToken);
+      // Split the text into characters and stream them with a small delay
+      const tokens = extractedWithRegex.split('');
+      for (let i = 0; i < tokens.length; i++) {
+        // Use setTimeout to create a delay between tokens
+        await new Promise(resolve => setTimeout(resolve, 20));
+        options.onStreamToken(tokens[i]);
+      }
     }
     
     return extractedWithRegex;
@@ -28,67 +33,66 @@ export async function extractInsuredName(documentText: string, options: LLMOptio
   try {
     console.log("Regex extraction failed, calling extraction API");
     
-    // Use streaming API if a streaming callback is provided
-    if (options.onStreamToken) {
-      const response = await fetch('/api/llm-stream', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          prompt: documentText,
-          max_length: options.maxTokens || 200,
-          temperature: options.temperature || 0.3
-        }),
-      });
+    const response = await fetch('/api/llm', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        prompt: documentText,
+        max_length: options.maxTokens || 200,
+        temperature: options.temperature || 0.3
+      }),
+    });
 
-      // Streaming response handling
-      if (!response.ok) throw new Error(`Streaming request failed: ${response.status}`);
-      if (!response.body) throw new Error('ReadableStream not supported');
-
-      const reader = response.body.getReader();
-      const decoder = new TextDecoder();
-      let result = '';
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        
-        const chunk = decoder.decode(value, { stream: true });
-        result += chunk;
-        
-        // Call the callback with each chunk
-        options.onStreamToken(chunk);
-      }
-
-      console.log(`Streamed entity: "${result}"`);
-      return result.trim();
-    } else {
-      // Use regular API for non-streaming requests
-      const response = await fetch('/api/llm', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          prompt: documentText,
-          max_length: options.maxTokens || 200,
-          temperature: options.temperature || 0.3
-        }),
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Failed to extract insured name');
-      }
-
-      const data = await response.json();
-      console.log(`Extracted entity with API: "${data.response}"`);
-      return data.response.trim();
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      throw new Error(error.error || `API request failed with status ${response.status}`);
     }
+
+    if (!response.body) {
+      throw new Error('Response body is empty');
+    }
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let result = '';
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      
+      const chunk = decoder.decode(value, { stream: true });
+      const lines = chunk.split('\n').filter(line => line.trim() !== '');
+      
+      for (const line of lines) {
+        if (line === 'data: [DONE]') {
+          continue;
+        }
+        
+        if (line.startsWith('data: ')) {
+          try {
+            const data = JSON.parse(line.slice(6));
+            if (data.token) {
+              result += data.token;
+              if (options.onStreamToken) {
+                options.onStreamToken(data.token);
+              }
+            } else if (data.error) {
+              throw new Error(data.error);
+            }
+          } catch (e) {
+            console.error('Error parsing chunk:', e);
+          }
+        }
+      }
+    }
+
+    console.log(`Extracted entity with API: "${result}"`);
+    return result.trim() || "UNKNOWN";
   } catch (error) {
     console.error('API extraction error:', error);
-    return "UNKNOWN"; // If all else fails
+    return "UNKNOWN";
   }
 }
 
