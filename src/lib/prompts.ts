@@ -18,7 +18,7 @@ Example output: "Acme Corporation LLC" or "John Smith"
  * SYSTEM_PROMPT Documentation:
  * 
  * Purpose:
- * This prompt instructs the NLP system to extract the primary insured entity from insurance documents.
+ * This prompt instructs the LLM to extract the primary insured entity from insurance documents.
  * 
  * Design Considerations:
  * 1. Specificity: The prompt is specific about the extraction task (PRIMARY INSURED ENTITY only)
@@ -27,6 +27,5 @@ Example output: "Acme Corporation LLC" or "John Smith"
  * 4. Examples: Shows expected output format
  * 5. Error handling: Instructs to return "UNKNOWN" when uncertain
  * 
- * The prompt is designed to work with both traditional NLP systems and LLMs,
- * focusing on precise entity extraction rather than narrative responses.
+ * The prompt is designed to work with LLMs, focusing on precise entity extraction.
  */

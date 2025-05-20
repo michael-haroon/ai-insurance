@@ -7,8 +7,7 @@ interface ExtractionOptions {
 }
 
 /**
- * Attempts entity extraction using Hugging Face, falling back to Python NLP
- * if Hugging Face fails.
+ * Attempts entity extraction using Hugging Face
  */
 export async function extractEntity(text: string, options: ExtractionOptions = {}): Promise<string> {
   const prompt = createExtractionPrompt(text);
@@ -35,7 +34,7 @@ export async function extractEntity(text: string, options: ExtractionOptions = {
     const data = await response.json();
     return data.result || data.response || "";
   } catch (error) {
-    console.log("Hugging Face extraction failed, falling back to Python NLP service");
+    console.log("Hugging Face extraction failed! Check your API key or make sure the file is not corrupt.");
     return "UNKNOWN";
   }
 }
