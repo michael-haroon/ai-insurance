@@ -30,7 +30,5 @@ Core modules include: parser.ts (document handling), extraction-service.ts (tier
 ## Trade-offs and Assumptions
 
 - **Document Safety**: The application assumes uploaded files are safe to process. Production implementations would require file validation and virus scanning.
-- **API Dependencies**: Relies on both Hugging Face API and local Python service, creating multiple external dependencies.
-- **Processing Speed vs. Reliability**: Prioritizes reliable processing over speed by using queuing and retries.
-- **Sample Document Handling**: Special handling exists for sample documents to ensure consistent demo results.
-
+- **API Dependencies**: Relies on Hugging Face API service, creating an external dependency that can lead to sudden privacy issues, price hikes, loss of service, or latency issues.
+- **Processing Speed vs. Reliability**: Prioritizes speed over robustness by using lite regex first, then falls back to Hugging Face LLM if regex fails.
