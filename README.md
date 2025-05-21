@@ -23,12 +23,12 @@ It is a work in progress and is not yet ready for "production" use.
 
 ## Architecture
 
-The application employs a multi-tiered extraction strategy with two levels: regex pattern matching (primary), and a Hugging Face LLM (secondary). Document processing follows a queue-based approach with mutex locking to prevent collisions during concurrent uploads. The React frontend provides real-time feedback through streaming updates during extraction, while the backend API routes handle document parsing and entity extraction.
+The application employs a multi-tiered extraction strategy with two levels: lite regex pattern matching (primary), and a Hugging Face LLM (secondary). Document processing follows a queue-based approach with mutex locking and retries to prevent collisions during concurrent uploads. The React frontend provides real-time feedback through streaming updates during extraction, while the backend API routes handle document parsing and entity extraction.
 
 Core modules include: parser.ts (document handling), extraction-service.ts (tiered extraction), llm.ts (AI integration), and match.ts (entity matching with confidence scoring). The system uses a lite regex pattern matching function at the first level to keep the program quick. LLM is the second level.
 
 ## Trade-offs and Assumptions
 
 - **Document Safety**: The application assumes uploaded files are safe to process. Production implementations would require file validation and virus scanning.
-- **API Dependencies**: Relies on Hugging Face API service, creating an external dependency that can lead to privacy issues, price hikes, loss of service, or latency issues.
+- **API Dependencies**: Falls back on Hugging Face API service, creating an external dependency that can lead to privacy issues, price hikes, loss of service, or latency issues.
 - **Processing Speed vs. Reliability**: Prioritizes speed over robustness by using lite regex first, then falls back to Hugging Face LLM if regex fails.
