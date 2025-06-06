@@ -129,7 +129,7 @@ async function parseViaApi(endpoint: string, file: File): Promise<string> {
 
   // Implement a timeout to prevent hanging requests
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+  const timeoutId = setTimeout(() => controller.abort(), 60000); // Increased to 60 second timeout
   
   try {
     const res = await fetch(`/api${endpoint}`, { 
@@ -147,13 +147,17 @@ async function parseViaApi(endpoint: string, file: File): Promise<string> {
     
     const { text } = await res.json();
     
-    // Validate the response
-    if (!text || 
-        typeof text !== 'string' ||
-        text.includes('WebKitFormBoundary') || 
-        text.includes('PyFPDF') || 
-        text.trim().length < 10) {
-      throw new Error('Invalid PDF content detected');
+    // Validate the response with less strict criteria
+    if (!text || typeof text !== 'string') {
+      throw new Error('Invalid response format');
+    }
+    
+    // Log the first 100 characters for debugging
+    console.log(`Parsed text sample (${text.length} chars):`, text.substring(0, 100));
+    
+    // Only check for obviously invalid content
+    if (text.includes('WebKitFormBoundary')) {
+      throw new Error('Form boundary detected in response');
     }
     
     return text;
