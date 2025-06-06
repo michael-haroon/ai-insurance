@@ -1,4 +1,5 @@
 // src/lib/llm.ts
+import { SYSTEM_PROMPT } from './prompts';
 
 interface LLMOptions {
   maxTokens?: number;
@@ -39,6 +40,7 @@ export async function extractInsuredName(documentText: string, options: LLMOptio
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
+        system_prompt: SYSTEM_PROMPT,
         prompt: documentText,
         max_length: options.maxTokens || 200,
         temperature: options.temperature || 0.3

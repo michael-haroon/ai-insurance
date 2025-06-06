@@ -1,5 +1,6 @@
 // src/app/api/llm/route.ts - LLM API endpoint with streaming support
 import { NextResponse } from 'next/server';
+import { SYSTEM_PROMPT } from '@/lib/prompts';
 
 // Default model to use if none is specified
 const DEFAULT_MODEL = 'cutycat2000x/MeowGPT-3.5';
@@ -26,7 +27,10 @@ export async function POST(request: Request) {
         'Authorization': `Bearer ${apiKey}`
       },
       body: JSON.stringify({
-        inputs: prompt,
+        inputs: {
+          system_prompt: SYSTEM_PROMPT,
+          user_prompt: prompt
+        },
         parameters: {
           max_new_tokens: maxTokens,
           temperature: temperature,
