@@ -1,15 +1,17 @@
 // src/lib/llm.ts
 import { SYSTEM_PROMPT } from './prompts';
+import { parseViaApi } from './parser';
 
 interface LLMOptions {
   maxTokens?: number;
   temperature?: number;
   onStreamToken?: (token: string) => void;
+  file?: File;
 }
 
 /**
  * Extracts the primary insured entity name from document text
- * using a tiered approach: regex -> API endpoints
+ * using a tiered approach: regex -> reparse PDF -> API endpoints
  */
 export async function extractInsuredName(documentText: string, options: LLMOptions = {}): Promise<string> {
   // First try direct regex extraction (fast, local)
@@ -32,7 +34,37 @@ export async function extractInsuredName(documentText: string, options: LLMOptio
   }
 
   try {
-    console.log("Regex extraction failed, calling extraction API");
+    console.log("Regex extraction failed, attempting PDF reparse");
+    
+    // If the document text is from a PDF, try to reparse it
+    if (options.file && options.file.name.toLowerCase().endsWith('.pdf')) {
+      try {
+        // Attempt to reparse the PDF
+        const reparsedText = await parseViaApi('/parse-pdf', options.file);
+        console.log("PDF reparse successful, attempting regex extraction again");
+        
+        // Try regex extraction again with the reparsed text
+        const reparsedExtraction = extractEntityWithRegex(reparsedText);
+        if (reparsedExtraction !== "UNKNOWN") {
+          console.log(`Extracted entity after PDF reparse: "${reparsedExtraction}"`);
+          
+          // Simulate streaming for reparsed results
+          if (options.onStreamToken) {
+            const tokens = reparsedExtraction.split('');
+            for (let i = 0; i < tokens.length; i++) {
+              await new Promise(resolve => setTimeout(resolve, 20));
+              options.onStreamToken(tokens[i]);
+            }
+          }
+          
+          return reparsedExtraction;
+        }
+      } catch (reparseError) {
+        console.warn("PDF reparse failed:", reparseError);
+      }
+    }
+
+    console.log("Regex extraction and PDF reparse failed, calling extraction API");
     
     const response = await fetch('/api/llm', {
       method: 'POST',

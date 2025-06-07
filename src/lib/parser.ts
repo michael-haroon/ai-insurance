@@ -91,7 +91,8 @@ export async function parseFile(
 
   // Extract the insured name with streaming support
   const insuredName = await extractInsuredName(text, {
-    onStreamToken: onToken
+    onStreamToken: onToken,
+    file: file
   });
 
   return { text, insuredName };
@@ -123,7 +124,7 @@ async function processPdf(file: File): Promise<string> {
   throw new Error("Maximum retry attempts exceeded");
 }
 
-async function parseViaApi(endpoint: string, file: File): Promise<string> {
+export async function parseViaApi(endpoint: string, file: File): Promise<string> {
   const fd = new FormData();
   fd.append('file', file);
 
