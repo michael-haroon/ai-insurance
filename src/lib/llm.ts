@@ -11,61 +11,11 @@ interface LLMOptions {
 
 /**
  * Extracts the primary insured entity name from document text
- * using a tiered approach: regex -> reparse PDF -> API endpoints
+ * using a tiered approach: LLM -> regex -> reparse PDF
  */
 export async function extractInsuredName(documentText: string, options: LLMOptions = {}): Promise<string> {
-  // First try direct regex extraction (fast, local)
-  const extractedWithRegex = extractEntityWithRegex(documentText);
-  if (extractedWithRegex !== "UNKNOWN") {
-    console.log(`Extracted entity with regex: "${extractedWithRegex}"`);
-    
-    // Simulate streaming for regex results if streaming is enabled
-    if (options.onStreamToken) {
-      // Split the text into characters and stream them with a small delay
-      const tokens = extractedWithRegex.split('');
-      for (let i = 0; i < tokens.length; i++) {
-        // Use setTimeout to create a delay between tokens
-        await new Promise(resolve => setTimeout(resolve, 20));
-        options.onStreamToken(tokens[i]);
-      }
-    }
-    
-    return extractedWithRegex;
-  }
-
+  // First try LLM extraction (API call)
   try {
-    console.log("Regex extraction failed, attempting PDF reparse");
-    
-    // If the document text is from a PDF, try to reparse it
-    if (options.file && options.file.name.toLowerCase().endsWith('.pdf')) {
-      try {
-        // Attempt to reparse the PDF
-        const reparsedText = await parseViaApi('/parse-pdf', options.file);
-        console.log("PDF reparse successful, attempting regex extraction again");
-        
-        // Try regex extraction again with the reparsed text
-        const reparsedExtraction = extractEntityWithRegex(reparsedText);
-        if (reparsedExtraction !== "UNKNOWN") {
-          console.log(`Extracted entity after PDF reparse: "${reparsedExtraction}"`);
-          
-          // Simulate streaming for reparsed results
-          if (options.onStreamToken) {
-            const tokens = reparsedExtraction.split('');
-            for (let i = 0; i < tokens.length; i++) {
-              await new Promise(resolve => setTimeout(resolve, 20));
-              options.onStreamToken(tokens[i]);
-            }
-          }
-          
-          return reparsedExtraction;
-        }
-      } catch (reparseError) {
-        console.warn("PDF reparse failed:", reparseError);
-      }
-    }
-
-    console.log("Regex extraction and PDF reparse failed, calling extraction API");
-    
     const response = await fetch('/api/llm', {
       method: 'POST',
       headers: {
@@ -95,15 +45,12 @@ export async function extractInsuredName(documentText: string, options: LLMOptio
     while (true) {
       const { done, value } = await reader.read();
       if (done) break;
-      
       const chunk = decoder.decode(value, { stream: true });
       const lines = chunk.split('\n').filter(line => line.trim() !== '');
-      
       for (const line of lines) {
         if (line === 'data: [DONE]') {
           continue;
         }
-        
         if (line.startsWith('data: ')) {
           try {
             const data = JSON.parse(line.slice(6));
@@ -121,13 +68,51 @@ export async function extractInsuredName(documentText: string, options: LLMOptio
         }
       }
     }
-
     console.log(`Extracted entity with API: "${result}"`);
-    return result.trim() || "UNKNOWN";
+    if (result.trim() && result.trim() !== "UNKNOWN") {
+      return result.trim();
+    }
   } catch (error) {
     console.error('API extraction error:', error);
-    return "UNKNOWN";
   }
+
+  // If LLM fails or returns UNKNOWN, try direct regex extraction (fast, local)
+  const extractedWithRegex = extractEntityWithRegex(documentText);
+  if (extractedWithRegex !== "UNKNOWN") {
+    console.log(`Extracted entity with regex: "${extractedWithRegex}"`);
+    if (options.onStreamToken) {
+      const tokens = extractedWithRegex.split('');
+      for (let i = 0; i < tokens.length; i++) {
+        await new Promise(resolve => setTimeout(resolve, 20));
+        options.onStreamToken(tokens[i]);
+      }
+    }
+    return extractedWithRegex;
+  }
+
+  // If the document text is from a PDF, try to reparse it and run regex again
+  if (options.file && options.file.name.toLowerCase().endsWith('.pdf')) {
+    try {
+      const reparsedText = await parseViaApi('/parse-pdf', options.file);
+      console.log("PDF reparse successful, attempting regex extraction again");
+      const reparsedExtraction = extractEntityWithRegex(reparsedText);
+      if (reparsedExtraction !== "UNKNOWN") {
+        console.log(`Extracted entity after PDF reparse: "${reparsedExtraction}"`);
+        if (options.onStreamToken) {
+          const tokens = reparsedExtraction.split('');
+          for (let i = 0; i < tokens.length; i++) {
+            await new Promise(resolve => setTimeout(resolve, 20));
+            options.onStreamToken(tokens[i]);
+          }
+        }
+        return reparsedExtraction;
+      }
+    } catch (reparseError) {
+      console.warn("PDF reparse failed:", reparseError);
+    }
+  }
+
+  return "UNKNOWN";
 }
 
 // Improved regex patterns with special handling for your sample cases

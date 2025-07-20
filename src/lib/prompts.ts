@@ -1,6 +1,6 @@
 // src/lib/prompts.ts
 export const SYSTEM_PROMPT = `
-You are an AI assistant specialized in extracting information from insurance claim documents.
+You are an AI assistant specialized in extracting the primary insured from insurance claim documents.
 Your task is to identify the PRIMARY INSURED ENTITY from the document.
 
 Guidelines:
