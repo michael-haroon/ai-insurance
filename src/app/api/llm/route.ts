@@ -3,12 +3,12 @@ import { NextResponse } from 'next/server';
 import { SYSTEM_PROMPT } from '@/lib/prompts';
 
 // Default model to use if none is specified
-const DEFAULT_MODEL = 'cutycat2000x/MeowGPT-3.5';
+const DEFAULT_MODEL = 'gemini-pro'; // Cheapest Gemini model
 
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const apiKey = process.env.HUGGINGFACE_API_KEY;
+    const apiKey = process.env.GEMINI_API_KEY;
     
     if (!apiKey) {
       throw new Error('Hugging Face API key is not configured');
@@ -19,25 +19,21 @@ export async function POST(request: Request) {
     const maxTokens = body.max_length || 200;
     const temperature = body.temperature || 0.3;
     
-    // Call the Hugging Face API
-    const response = await fetch(`https://api-inference.huggingface.co/models/${model}`, {
+    // Call the Gemini API (replace Hugging Face endpoint)
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${apiKey}`
       },
       body: JSON.stringify({
-        inputs: {
-          system_prompt: SYSTEM_PROMPT,
-          user_prompt: prompt
-        },
-        parameters: {
-          max_new_tokens: maxTokens,
-          temperature: temperature,
-          return_full_text: false
-        },
-        options: {
-          stream: true
+        contents: [{
+          role: 'user',
+          parts: [{ text: `${SYSTEM_PROMPT}\n${prompt}` }]
+        }],
+        generationConfig: {
+          maxOutputTokens: maxTokens,
+          temperature: temperature
         }
       }),
     });
