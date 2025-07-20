@@ -1,9 +1,11 @@
 // src/app/api/llm/route.ts - LLM API endpoint with streaming support
 import { NextResponse } from 'next/server';
 import { SYSTEM_PROMPT } from '@/lib/prompts';
+import { GoogleGenerativeAI } from "@google/generative-ai";
+
 
 // Default model to use if none is specified
-const DEFAULT_MODEL = 'gemini-pro'; // Cheapest Gemini model
+const DEFAULT_MODEL = 'gemini-1.5-flash'; // Cheapest Gemini model
 
 export async function POST(request: Request) {
   try {
@@ -11,7 +13,7 @@ export async function POST(request: Request) {
     const apiKey = process.env.GEMINI_API_KEY;
     
     if (!apiKey) {
-      throw new Error('Hugging Face API key is not configured');
+      throw new Error('Gemini API key is not configured');
     }
     
     const model = body.model || DEFAULT_MODEL;
@@ -20,11 +22,10 @@ export async function POST(request: Request) {
     const temperature = body.temperature || 0.3;
     
     // Call the Gemini API (replace Hugging Face endpoint)
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`
+        'Content-Type': 'application/json'
       },
       body: JSON.stringify({
         contents: [{
@@ -40,7 +41,7 @@ export async function POST(request: Request) {
 
     if (!response.ok) {
       const error = await response.json().catch(() => ({}));
-      throw new Error(error.error || `Hugging Face API error: ${response.status}`);
+      throw new Error(JSON.stringify(error) || `Gemini API error: ${response.status}`);
     }
 
     if (!response.body) {
@@ -107,7 +108,7 @@ export async function POST(request: Request) {
     });
   } catch (error: unknown) {
     console.error('Request error:', error);
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+    const errorMessage = error instanceof Error ? error.message : JSON.stringify(error);
     return NextResponse.json(
       { error: `Failed to process request: ${errorMessage}` },
       { status: 500 }
